@@ -120,7 +120,7 @@ function OrderPage() {
           <Link
             to="/kits/$kitId"
             params={{ kitId: order.kitId }}
-            search={{ view: "local" } as never}
+            search={{ view: "local" as const }}
             className="inline-flex items-center gap-2 justify-center h-14 rounded-full border border-border bg-card font-semibold hover:border-primary/50 transition"
           >
             <Eye className="h-5 w-5 text-primary" /> Ver no meu local
