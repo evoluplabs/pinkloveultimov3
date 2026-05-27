@@ -35,6 +35,21 @@ function KitDetailPage() {
   const { data: config } = useCatalogConfig();
   const builder = useOrderBuilder(kit, config);
   const [view, setView] = useState<"foto" | "360" | "local">("foto");
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // libera object URL ao desmontar / trocar
+  useEffect(() => {
+    return () => {
+      if (customPhoto?.startsWith("blob:")) URL.revokeObjectURL(customPhoto);
+    };
+  }, [customPhoto]);
+
+  const onPickPhoto = (file?: File | null) => {
+    if (!file) return;
+    if (customPhoto?.startsWith("blob:")) URL.revokeObjectURL(customPhoto);
+    setCustomPhoto(URL.createObjectURL(file));
+  };
 
   if (isLoading) return <CenterLoader />;
   if (!kit || !config)
