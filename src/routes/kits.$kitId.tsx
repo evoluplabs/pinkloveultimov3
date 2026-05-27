@@ -220,5 +220,30 @@ function CenterLoader() {
   );
 }
 
+function TabBtn({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-4 h-9 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition",
+        active ? "bg-primary text-primary-foreground shadow-petal" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
 // noop reference to suppress unused warning for useStore (kept for parity with MHOUSE imports if needed later)
 void useStore;
