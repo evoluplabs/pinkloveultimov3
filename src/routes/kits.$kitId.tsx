@@ -123,6 +123,10 @@ function KitDetailPage() {
                     theme={kit.theme}
                     accent={kit.accent}
                     photoSrc={customPhoto ?? kit.coverImage}
+                    extras={kit.extras}
+                    selectedExtraIds={kit.extras
+                      .filter((e) => (builder.extras[e.id] ?? 0) > 0)
+                      .map((e) => e.id)}
                     className="absolute inset-0"
                   />
                 ) : (
