@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
 import { motion } from "motion/react";
-import { ArrowLeft, Camera, ImageIcon, RotateCw } from "lucide-react";
+import { ArrowLeft, Camera, ImageIcon, RotateCw, Upload, X } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Product360 } from "@/components/Product360";
