@@ -3,7 +3,7 @@
 // Drag = rotaciona / Scroll = zoom / Auto-rotate quando ocioso.
 
 import { Suspense, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import {
   OrbitControls,
   Environment,
