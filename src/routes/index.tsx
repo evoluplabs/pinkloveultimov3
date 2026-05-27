@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/Hero";
+import { ImmersiveStage } from "@/components/ImmersiveStage";
 import { TopSellers } from "@/components/TopSellers";
 import { KitsGrid } from "@/components/KitsGrid";
 import { HowItWorks } from "@/components/HowItWorks";
@@ -34,6 +35,7 @@ function Home() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <Hero config={config} />
+      <ImmersiveStage />
       <TopSellers />
       <KitsGrid />
       <HowItWorks />
