@@ -278,6 +278,24 @@ function KitDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Sticky CTA mobile */}
+      <div className="lg:hidden sticky bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur px-4 py-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
+          <div className="font-display text-xl text-primary leading-none truncate">
+            {builder.total > 0 ? `R$ ${builder.total.toFixed(2).replace(".", ",")}` : "Escolha o pacote"}
+          </div>
+        </div>
+        <button
+          onClick={startCheckout}
+          disabled={!builder.eventDate}
+          className="h-12 px-5 rounded-full bg-gradient-pink text-primary-foreground text-sm font-semibold shadow-petal disabled:opacity-50 disabled:shadow-none whitespace-nowrap"
+        >
+          Quero este kit →
+        </button>
+      </div>
+
       <Footer />
     </div>
   );
@@ -285,8 +303,34 @@ function KitDetailPage() {
 
 function CenterLoader() {
   return (
-    <div className="min-h-screen grid place-items-center bg-background">
-      <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+        <div className="h-5 w-32 rounded bg-secondary animate-pulse-soft mb-6" />
+        <div className="grid lg:grid-cols-[1.1fr_1fr] gap-10">
+          <div>
+            <div className="aspect-square rounded-3xl bg-secondary animate-pulse-soft" />
+            <div className="mt-3 h-9 w-64 rounded-full bg-secondary animate-pulse-soft mx-auto" />
+            <div className="mt-4 grid grid-cols-4 gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="aspect-square rounded-xl bg-secondary animate-pulse-soft" />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="h-4 w-24 rounded bg-secondary animate-pulse-soft" />
+            <div className="h-12 w-3/4 rounded bg-secondary animate-pulse-soft" />
+            <div className="h-20 w-full rounded bg-secondary animate-pulse-soft" />
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-28 rounded-2xl bg-secondary animate-pulse-soft" />
+              ))}
+            </div>
+            <div className="h-40 w-full rounded-2xl bg-secondary animate-pulse-soft" />
+            <div className="h-14 w-full rounded-full bg-secondary animate-pulse-soft" />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
