@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, ImageIcon, RotateCw } from "lucide-react";
+import { ArrowLeft, Camera, ImageIcon, RotateCw } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Product360 } from "@/components/Product360";
+import { VenueVisualizer } from "@/components/VenueVisualizer";
 import { TierSelector } from "@/components/TierSelector";
 import { BomList } from "@/components/BomList";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
@@ -32,7 +33,7 @@ function KitDetailPage() {
   const { data: kit, isLoading } = useKit(kitId);
   const { data: config } = useCatalogConfig();
   const builder = useOrderBuilder(kit, config);
-  const [view, setView] = useState<"foto" | "360">("foto");
+  const [view, setView] = useState<"foto" | "360" | "local">("foto");
 
   if (isLoading) return <CenterLoader />;
   if (!kit || !config)
@@ -74,51 +75,52 @@ function KitDetailPage() {
         </button>
 
         <div className="grid lg:grid-cols-[1.1fr_1fr] gap-10">
-          {/* GALERIA / 360 */}
+          {/* GALERIA / 360 / VENUE */}
           <div>
-            <div className="relative aspect-square rounded-3xl overflow-hidden bg-secondary border border-border">
-              {view === "360" ? (
-                <Product360
-                  src={kit.coverImage}
-                  alt={kit.name}
-                  accent={kit.accent}
-                  frames={kit.frames360}
-                  className="absolute inset-0"
-                />
-              ) : (
-                <motion.img
-                  key={kit.coverImage}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  src={kit.coverImage}
-                  alt={kit.name}
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              )}
-              <div className="absolute top-3 right-3 flex gap-1 rounded-full bg-card/90 backdrop-blur border border-border p-1">
-                <button
-                  onClick={() => setView("foto")}
-                  className={cn(
-                    "px-3 h-8 rounded-full text-xs font-semibold inline-flex items-center gap-1.5",
-                    view === "foto" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  <ImageIcon className="h-3 w-3" /> Foto
-                </button>
-                <button
-                  onClick={() => setView("360")}
-                  className={cn(
-                    "px-3 h-8 rounded-full text-xs font-semibold inline-flex items-center gap-1.5",
-                    view === "360" ? "bg-primary text-primary-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  <RotateCw className="h-3 w-3" /> 360°
-                </button>
+            {view === "local" ? (
+              <VenueVisualizer
+                kitImage={kit.coverImage}
+                kitName={kit.name}
+                whatsappNumber={config.social.whatsapp}
+                accent={kit.accent}
+              />
+            ) : (
+              <div className="relative aspect-square rounded-3xl overflow-hidden bg-secondary border border-border">
+                {view === "360" ? (
+                  <Product360
+                    src={kit.coverImage}
+                    alt={kit.name}
+                    accent={kit.accent}
+                    frames={kit.frames360}
+                    className="absolute inset-0"
+                  />
+                ) : (
+                  <motion.img
+                    key={kit.coverImage}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    src={kit.coverImage}
+                    alt={kit.name}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
               </div>
+            )}
+
+            <div className="mt-3 flex gap-1 rounded-full bg-card border border-border p-1 w-fit mx-auto">
+              <TabBtn active={view === "foto"} onClick={() => setView("foto")} icon={<ImageIcon className="h-3.5 w-3.5" />}>
+                Foto
+              </TabBtn>
+              <TabBtn active={view === "360"} onClick={() => setView("360")} icon={<RotateCw className="h-3.5 w-3.5" />}>
+                360°
+              </TabBtn>
+              <TabBtn active={view === "local"} onClick={() => setView("local")} icon={<Camera className="h-3.5 w-3.5" />}>
+                No seu local
+              </TabBtn>
             </div>
 
-            {kit.gallery.length > 1 && (
-              <div className="mt-3 grid grid-cols-4 gap-2">
+            {view !== "local" && kit.gallery.length > 1 && (
+              <div className="mt-4 grid grid-cols-4 gap-2">
                 {kit.gallery.map((g, i) => (
                   <div
                     key={i}
