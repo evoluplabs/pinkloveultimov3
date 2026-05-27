@@ -294,14 +294,34 @@ function Floor() {
   );
 }
 
+function PhotoBillboard({ src }: { src: string }) {
+  // tenta carregar; se a URL falhar (CORS), o componente faz fallback silencioso
+  const tex = useLoader(THREE.TextureLoader, src, undefined, () => {});
+  if (!tex) return null;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const aspect = (tex.image?.width ?? 4) / (tex.image?.height ?? 3);
+  const h = 1.6;
+  const w = h * aspect;
+  return (
+    <Float speed={1.2} floatIntensity={0.2} rotationIntensity={0.05}>
+      <mesh position={[0, 0.95, -0.3]}>
+        <planeGeometry args={[w, h]} />
+        <meshBasicMaterial map={tex} toneMapped={false} />
+      </mesh>
+    </Float>
+  );
+}
+
 function StageScene({
   accent,
   theme,
   showCake = true,
+  photoSrc,
 }: {
   accent: string;
   theme: Theme;
   showCake?: boolean;
+  photoSrc?: string;
 }) {
   return (
     <>
@@ -317,6 +337,11 @@ function StageScene({
 
       <Floor />
       <Backdrop accent={accent} theme={theme} />
+      {photoSrc && (
+        <Suspense fallback={null}>
+          <PhotoBillboard src={photoSrc} />
+        </Suspense>
+      )}
       <BalloonArch accent={accent} />
       {showCake && <Cake accent={accent} theme={theme} />}
       <Props3D theme={theme} accent={accent} />
@@ -343,6 +368,7 @@ type Props = {
   accent?: string;
   kitName: string;
   theme: string;
+  photoSrc?: string;
   className?: string;
 };
 
@@ -350,6 +376,7 @@ export function Product360({
   accent = "#e879a0",
   kitName,
   theme,
+  photoSrc,
   className = "",
 }: Props) {
   const t = themeFromKit(kitName, theme);
@@ -359,21 +386,21 @@ export function Product360({
     <div className={`relative ${className}`}>
       <Canvas
         shadows
-        camera={{ position: [0, 1.0, 6.5], fov: 45 }}
+        camera={{ position: [0, 0.9, 4.6], fov: 52 }}
         dpr={[1, 2]}
         onPointerDown={() => setInteracted(true)}
         onWheel={() => setInteracted(true)}
         style={{ background: `radial-gradient(circle at 50% 40%, ${accent}30, transparent 70%)` }}
       >
         <Suspense fallback={null}>
-          <StageScene accent={accent} theme={t} />
+          <StageScene accent={accent} theme={t} photoSrc={photoSrc} />
           <OrbitControls
             enablePan={false}
             enableDamping
             dampingFactor={0.08}
-            target={[0, 0.8, 0]}
-            minDistance={5}
-            maxDistance={10}
+            target={[0, 0.7, 0]}
+            minDistance={3.2}
+            maxDistance={7.5}
             minPolarAngle={Math.PI / 3}
             maxPolarAngle={Math.PI / 2.05}
             autoRotate
