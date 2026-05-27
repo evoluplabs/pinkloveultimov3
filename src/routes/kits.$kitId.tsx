@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
 import { motion } from "motion/react";
-import { ArrowLeft, Camera, ImageIcon, RotateCw } from "lucide-react";
+import { ArrowLeft, Camera, ImageIcon, RotateCw, Upload, X } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Product360 } from "@/components/Product360";
@@ -34,6 +35,21 @@ function KitDetailPage() {
   const { data: config } = useCatalogConfig();
   const builder = useOrderBuilder(kit, config);
   const [view, setView] = useState<"foto" | "360" | "local">("foto");
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // libera object URL ao desmontar / trocar
+  useEffect(() => {
+    return () => {
+      if (customPhoto?.startsWith("blob:")) URL.revokeObjectURL(customPhoto);
+    };
+  }, [customPhoto]);
+
+  const onPickPhoto = (file?: File | null) => {
+    if (!file) return;
+    if (customPhoto?.startsWith("blob:")) URL.revokeObjectURL(customPhoto);
+    setCustomPhoto(URL.createObjectURL(file));
+  };
 
   if (isLoading) return <CenterLoader />;
   if (!kit || !config)
@@ -79,7 +95,7 @@ function KitDetailPage() {
           <div>
             {view === "local" ? (
               <VenueVisualizer
-                kitImage={kit.coverImage}
+                kitImage={customPhoto ?? kit.coverImage}
                 kitName={kit.name}
                 whatsappNumber={config.social.whatsapp}
                 businessName={config.businessName}
@@ -106,15 +122,15 @@ function KitDetailPage() {
                     kitName={kit.name}
                     theme={kit.theme}
                     accent={kit.accent}
-                    photoSrc={kit.coverImage}
+                    photoSrc={customPhoto ?? kit.coverImage}
                     className="absolute inset-0"
                   />
                 ) : (
                   <motion.img
-                    key={kit.coverImage}
+                    key={customPhoto ?? kit.coverImage}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    src={kit.coverImage}
+                    src={customPhoto ?? kit.coverImage}
                     alt={kit.name}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
@@ -122,17 +138,53 @@ function KitDetailPage() {
               </div>
             )}
 
-            <div className="mt-3 flex gap-1 rounded-full bg-card border border-border p-1 w-fit mx-auto">
-              <TabBtn active={view === "foto"} onClick={() => setView("foto")} icon={<ImageIcon className="h-3.5 w-3.5" />}>
-                Foto
-              </TabBtn>
-              <TabBtn active={view === "360"} onClick={() => setView("360")} icon={<RotateCw className="h-3.5 w-3.5" />}>
-                360°
-              </TabBtn>
-              <TabBtn active={view === "local"} onClick={() => setView("local")} icon={<Camera className="h-3.5 w-3.5" />}>
-                No seu local
-              </TabBtn>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <div className="flex gap-1 rounded-full bg-card border border-border p-1">
+                <TabBtn active={view === "foto"} onClick={() => setView("foto")} icon={<ImageIcon className="h-3.5 w-3.5" />}>
+                  Foto
+                </TabBtn>
+                <TabBtn active={view === "360"} onClick={() => setView("360")} icon={<RotateCw className="h-3.5 w-3.5" />}>
+                  360°
+                </TabBtn>
+                <TabBtn active={view === "local"} onClick={() => setView("local")} icon={<Camera className="h-3.5 w-3.5" />}>
+                  No seu local
+                </TabBtn>
+              </div>
+
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => onPickPhoto(e.target.files?.[0])}
+              />
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-border bg-card hover:border-primary/50 text-xs font-semibold transition"
+                title="Use uma foto real do kit (modo de teste)"
+              >
+                <Upload className="h-3.5 w-3.5 text-primary" />
+                {customPhoto ? "Trocar foto" : "Testar foto real"}
+              </button>
+              {customPhoto && (
+                <button
+                  onClick={() => {
+                    if (customPhoto.startsWith("blob:")) URL.revokeObjectURL(customPhoto);
+                    setCustomPhoto(null);
+                  }}
+                  className="inline-flex items-center gap-1 h-9 px-2.5 rounded-full text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" /> remover
+                </button>
+              )}
             </div>
+
+            {customPhoto && (
+              <p className="mt-2 text-[11px] text-center text-muted-foreground">
+                Modo de teste: a foto está sendo usada como textura no palco 3D e na pré-visualização no local.
+              </p>
+            )}
+
 
             {view !== "local" && kit.gallery.length > 1 && (
               <div className="mt-4 grid grid-cols-4 gap-2">
