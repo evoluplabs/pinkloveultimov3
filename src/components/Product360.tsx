@@ -128,12 +128,7 @@ function BalloonArch({ accent }: { accent: string }) {
         <Float key={i} speed={1.6 + (i % 3) * 0.3} floatIntensity={0.25} rotationIntensity={0.1}>
           <mesh position={b.pos}>
             <sphereGeometry args={[b.scale, 24, 24]} />
-            <meshStandardMaterial
-              color={b.color}
-              roughness={0.25}
-              metalness={0.1}
-              clearcoat={0.6 as never}
-            />
+            <meshStandardMaterial color={b.color} roughness={0.25} metalness={0.1} />
           </mesh>
         </Float>
       ))}
