@@ -359,7 +359,7 @@ export function Product360({
     <div className={`relative ${className}`}>
       <Canvas
         shadows
-        camera={{ position: [0, 0.8, 5.2], fov: 38 }}
+        camera={{ position: [0, 1.6, 7.5], fov: 42 }}
         dpr={[1, 2]}
         onPointerDown={() => setInteracted(true)}
         onWheel={() => setInteracted(true)}
@@ -371,9 +371,10 @@ export function Product360({
             enablePan={false}
             enableDamping
             dampingFactor={0.08}
-            minDistance={3.5}
-            maxDistance={8}
-            minPolarAngle={Math.PI / 3.4}
+            target={[0, 0.4, 0]}
+            minDistance={5}
+            maxDistance={10}
+            minPolarAngle={Math.PI / 3}
             maxPolarAngle={Math.PI / 2.05}
             autoRotate
             autoRotateSpeed={interacted ? 0 : 0.8}
