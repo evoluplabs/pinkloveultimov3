@@ -82,7 +82,22 @@ function KitDetailPage() {
                 kitImage={kit.coverImage}
                 kitName={kit.name}
                 whatsappNumber={config.social.whatsapp}
+                businessName={config.businessName}
                 accent={kit.accent}
+                orderSummary={{
+                  tierLabel: builder.selectedTier?.label,
+                  eventDate: builder.eventDate,
+                  extras: builder.orderExtras.map((e) => ({
+                    name: e.name,
+                    qty: e.qty,
+                    unitPrice: e.unitPrice,
+                  })),
+                  freightLabel: builder.freightEnabled
+                    ? `Frete (${builder.freightOption.replace("-", " + ")})`
+                    : undefined,
+                  freightPrice: builder.freightPrice,
+                  total: builder.total,
+                }}
               />
             ) : (
               <div className="relative aspect-square rounded-3xl overflow-hidden bg-secondary border border-border">
@@ -91,6 +106,7 @@ function KitDetailPage() {
                     kitName={kit.name}
                     theme={kit.theme}
                     accent={kit.accent}
+                    photoSrc={kit.coverImage}
                     className="absolute inset-0"
                   />
                 ) : (
