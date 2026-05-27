@@ -1,369 +1,267 @@
-// Product360 v2 — visualizador 3D REAL com react-three-fiber.
-// Cada kit ganha uma cena estilizada (painel + arco de balões + bolo + props).
-// Drag = rotaciona / Scroll = zoom / Auto-rotate quando ocioso.
+// Product360 v3 — DIORAMA CURVO COM PARALLAX
+// A foto REAL do decorador é o herói: vai numa parede curva (cilíndrica) que
+// o usuário gira/inclina com gestos. Acessórios extras flutuam como camadas
+// 3D em frente à cena e podem ser ligados/desligados pelo usuário.
+// Sem cenário sintético sobrepondo a foto.
 
-import { Suspense, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import {
   OrbitControls,
-  Environment,
   Float,
   ContactShadows,
   Html,
-  Text3D,
-  Center,
+  Environment,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { RotateCw, ZoomIn, MousePointer2 } from "lucide-react";
+import { Hand, MoveVertical, Plus, Check, ImageOff } from "lucide-react";
+import type { Extra } from "@/data/types";
 
-type Theme =
-  | "princesa"
-  | "safari"
-  | "unicornio"
-  | "floral"
-  | "circo"
-  | "rose"
-  | "trono"
-  | "generic";
-
-function themeFromKit(kitName: string, theme: string): Theme {
-  const s = `${kitName} ${theme}`.toLowerCase();
-  if (s.includes("prince")) return "princesa";
-  if (s.includes("safari")) return "safari";
-  if (s.includes("unic")) return "unicornio";
-  if (s.includes("flor")) return "floral";
-  if (s.includes("circ")) return "circo";
-  if (s.includes("ros")) return "rose";
-  if (s.includes("trono")) return "trono";
-  return "generic";
-}
-
-// =========== CENAS ===========
-
-function Backdrop({ accent, theme }: { accent: string; theme: Theme }) {
-  // Painel curvo atrás da composição
-  const geo = useMemo(() => {
-    const g = new THREE.CylinderGeometry(2.6, 2.6, 3.2, 64, 1, true, -0.9, 1.8);
-    return g;
-  }, []);
-
-  const decorations = {
-    princesa: "🏰",
-    safari: "🌅",
-    unicornio: "🌈",
-    floral: "🌸",
-    circo: "🎪",
-    rose: "💗",
-    trono: "👑",
-    generic: "✨",
-  }[theme];
-
-  return (
-    <group position={[0, 0.6, -0.6]}>
-      <mesh geometry={geo}>
-        <meshStandardMaterial
-          color={accent}
-          side={THREE.DoubleSide}
-          roughness={0.55}
-          metalness={0.05}
-        />
-      </mesh>
-      {/* Moldura dourada no topo */}
-      <mesh position={[0, 1.7, 0]}>
-        <torusGeometry args={[2.6, 0.04, 12, 80, Math.PI * 1]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.9} roughness={0.2} />
-      </mesh>
-      {/* Letreiro 3D temático */}
-      <Float floatIntensity={0.4} rotationIntensity={0.2} speed={1.2}>
-        <Html position={[0, 1.1, 0.05]} center transform distanceFactor={3.2}>
-          <div
-            style={{
-              fontSize: 28,
-              filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.25))",
-              pointerEvents: "none",
-            }}
-          >
-            {decorations}
-          </div>
-        </Html>
-      </Float>
-    </group>
-  );
-}
-
-function BalloonArch({ accent }: { accent: string }) {
-  const colors = useMemo(() => {
-    const base = new THREE.Color(accent);
-    const hsl = { h: 0, s: 0, l: 0 };
-    base.getHSL(hsl);
-    const c2 = new THREE.Color().setHSL((hsl.h + 0.05) % 1, hsl.s, Math.min(0.85, hsl.l + 0.15));
-    const c3 = new THREE.Color("#ffffff");
-    const c4 = new THREE.Color("#d4af37");
-    return [base, c2, c3, c4];
-  }, [accent]);
-
-  const balloons = useMemo(() => {
-    const arr: { pos: [number, number, number]; scale: number; color: THREE.Color }[] = [];
-    const count = 22;
-    for (let i = 0; i < count; i++) {
-      const t = i / (count - 1);
-      const angle = Math.PI * (0.15 + t * 0.7); // arco em cima
-      const r = 2.2;
-      const x = Math.cos(angle) * r;
-      const y = Math.sin(angle) * r + 0.4;
-      const z = -0.2 + Math.sin(t * Math.PI) * 0.3;
-      const scale = 0.22 + Math.random() * 0.14;
-      arr.push({
-        pos: [x, y, z],
-        scale,
-        color: colors[i % colors.length],
-      });
-    }
-    return arr;
-  }, [colors]);
-
-  return (
-    <group>
-      {balloons.map((b, i) => (
-        <Float key={i} speed={1.6 + (i % 3) * 0.3} floatIntensity={0.25} rotationIntensity={0.1}>
-          <mesh position={b.pos}>
-            <sphereGeometry args={[b.scale, 24, 24]} />
-            <meshStandardMaterial color={b.color} roughness={0.25} metalness={0.1} />
-          </mesh>
-        </Float>
-      ))}
-    </group>
-  );
-}
-
-function Cake({ accent, theme }: { accent: string; theme: Theme }) {
-  const topper = {
-    princesa: "👑",
-    safari: "🦁",
-    unicornio: "🦄",
-    floral: "🌸",
-    circo: "🤡",
-    rose: "🌹",
-    trono: "♛",
-    generic: "🎂",
-  }[theme];
-
-  return (
-    <group position={[0, -0.55, 0.4]}>
-      {/* Base da mesa */}
-      <mesh position={[0, -0.05, 0]}>
-        <cylinderGeometry args={[1.1, 1.2, 0.18, 48]} />
-        <meshStandardMaterial color="#f4e4d6" roughness={0.6} />
-      </mesh>
-      {/* Bolo 3 andares */}
-      <mesh position={[0, 0.2, 0]}>
-        <cylinderGeometry args={[0.55, 0.62, 0.45, 40]} />
-        <meshStandardMaterial color="#fff5fa" roughness={0.4} />
-      </mesh>
-      <mesh position={[0, 0.55, 0]}>
-        <cylinderGeometry args={[0.42, 0.5, 0.35, 40]} />
-        <meshStandardMaterial color={accent} roughness={0.45} />
-      </mesh>
-      <mesh position={[0, 0.85, 0]}>
-        <cylinderGeometry args={[0.3, 0.38, 0.3, 40]} />
-        <meshStandardMaterial color="#fff5fa" roughness={0.4} />
-      </mesh>
-      {/* Topper */}
-      <Float speed={2} floatIntensity={0.6} rotationIntensity={0.4}>
-        <Html position={[0, 1.25, 0]} center transform distanceFactor={4}>
-          <div style={{ fontSize: 24, pointerEvents: "none" }}>{topper}</div>
-        </Html>
-      </Float>
-    </group>
-  );
-}
-
-function Props3D({ theme, accent }: { theme: Theme; accent: string }) {
-  const items: { emoji: string; pos: [number, number, number]; scale?: number }[] = useMemo(() => {
-    switch (theme) {
-      case "safari":
-        return [
-          { emoji: "🦁", pos: [-1.5, -0.5, 0.8] },
-          { emoji: "🦒", pos: [1.5, -0.3, 0.7], scale: 1.2 },
-          { emoji: "🐘", pos: [-1.8, -0.5, -0.3] },
-          { emoji: "🌿", pos: [1.7, -0.5, -0.2] },
-        ];
-      case "unicornio":
-        return [
-          { emoji: "🦄", pos: [-1.5, -0.4, 0.7] },
-          { emoji: "☁️", pos: [-1.6, 1.2, 0.2] },
-          { emoji: "☁️", pos: [1.7, 0.9, -0.1] },
-          { emoji: "🌈", pos: [1.5, -0.4, 0.7] },
-        ];
-      case "princesa":
-        return [
-          { emoji: "👸", pos: [-1.4, -0.4, 0.8] },
-          { emoji: "🏰", pos: [1.6, -0.3, 0.6] },
-          { emoji: "🎀", pos: [-1.7, 1.0, 0.1] },
-          { emoji: "💎", pos: [1.7, 1.0, 0.1] },
-        ];
-      case "floral":
-        return [
-          { emoji: "🌸", pos: [-1.5, -0.4, 0.7] },
-          { emoji: "🌷", pos: [1.5, -0.4, 0.7] },
-          { emoji: "🌿", pos: [-1.8, 0.7, 0] },
-          { emoji: "💐", pos: [1.8, 0.7, 0] },
-        ];
-      case "circo":
-        return [
-          { emoji: "🤡", pos: [-1.5, -0.4, 0.7] },
-          { emoji: "🎪", pos: [1.5, -0.4, 0.6], scale: 1.3 },
-          { emoji: "🎈", pos: [-1.8, 1.1, 0] },
-          { emoji: "🍿", pos: [1.7, -0.5, 0] },
-        ];
-      case "rose":
-        return [
-          { emoji: "🌹", pos: [-1.4, -0.4, 0.7] },
-          { emoji: "🥂", pos: [1.4, -0.4, 0.7] },
-          { emoji: "✨", pos: [-1.7, 1.0, 0.1] },
-          { emoji: "✨", pos: [1.7, 1.0, 0.1] },
-        ];
-      case "trono":
-        return [
-          { emoji: "👑", pos: [0, 1.4, 0.2], scale: 1.3 },
-          { emoji: "🟥", pos: [-1.4, -0.55, 0.8] },
-          { emoji: "🪟", pos: [1.4, 0.4, 0] },
-        ];
-      default:
-        return [
-          { emoji: "🎉", pos: [-1.5, -0.4, 0.7] },
-          { emoji: "🎁", pos: [1.5, -0.4, 0.7] },
-          { emoji: "✨", pos: [0, 1.6, 0.1] },
-        ];
-    }
-  }, [theme]);
-
-  return (
-    <group>
-      {items.map((it, i) => (
-        <Float key={i} speed={1.4 + i * 0.2} floatIntensity={0.3} rotationIntensity={0.15}>
-          <Html position={it.pos} center transform distanceFactor={3.4 / (it.scale ?? 1)}>
-            <div
-              style={{
-                fontSize: 56,
-                pointerEvents: "none",
-                filter: `drop-shadow(0 6px 14px ${accent}55)`,
-              }}
-            >
-              {it.emoji}
-            </div>
-          </Html>
-        </Float>
-      ))}
-    </group>
-  );
-}
-
-function Sparkles({ count = 50, accent }: { count?: number; accent: string }) {
-  const ref = useRef<THREE.Points>(null);
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 6;
-      arr[i * 3 + 1] = Math.random() * 3.5;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 4;
-    }
-    return arr;
-  }, [count]);
-
-  useFrame((s) => {
-    if (ref.current) ref.current.rotation.y = s.clock.elapsedTime * 0.05;
-  });
-
-  return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial color={accent} size={0.06} sizeAttenuation transparent opacity={0.85} />
-    </points>
-  );
-}
-
-function Floor() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]} receiveShadow>
-      <circleGeometry args={[3.5, 64]} />
-      <meshStandardMaterial color="#f6e8ee" roughness={0.85} />
-    </mesh>
-  );
-}
-
-function PhotoBillboard({ src }: { src: string }) {
+// ============= CURVED PHOTO BILLBOARD =============
+// Plano cilíndrico côncavo (vista de dentro) — dá sensação 360 mesmo com 1 foto.
+function CurvedPhoto({ src, accent }: { src: string; accent: string }) {
   const [tex, setTex] = useState<THREE.Texture | null>(null);
-  const [aspect, setAspect] = useState(1.33);
-  useMemo(() => {
+  const [aspect, setAspect] = useState(1.5);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
     const loader = new THREE.TextureLoader();
     loader.setCrossOrigin("anonymous");
     loader.load(
       src,
       (t) => {
         t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 8;
         setTex(t);
         if (t.image?.width) setAspect(t.image.width / t.image.height);
       },
       undefined,
-      () => setTex(null),
+      () => setFailed(true),
     );
+    return () => {
+      tex?.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
-  if (!tex) return null;
-  const h = 1.6;
-  const w = h * aspect;
-  return (
-    <Float speed={1.2} floatIntensity={0.2} rotationIntensity={0.05}>
-      <mesh position={[0, 0.95, -0.3]}>
-        <planeGeometry args={[w, h]} />
-        <meshBasicMaterial map={tex} toneMapped={false} transparent />
+
+  // Cilindro côncavo: altura fixa, largura derivada do aspect da foto.
+  const height = 2.6;
+  const width = height * aspect;
+  // arco proporcional à largura (foto larga = arco maior; foto retrato = arco menor)
+  const arc = Math.min(Math.PI * 0.95, Math.max(Math.PI * 0.45, width * 0.32));
+  const radius = width / (2 * Math.sin(arc / 2));
+  const geo = useMemo(
+    () =>
+      new THREE.CylinderGeometry(
+        radius,
+        radius,
+        height,
+        96,
+        1,
+        true,
+        -arc / 2 - Math.PI / 2,
+        arc,
+      ),
+    [radius, height, arc],
+  );
+
+  if (failed) {
+    return (
+      <mesh position={[0, height / 2 - 0.2, 0]}>
+        <planeGeometry args={[2.4, 1.8]} />
+        <meshStandardMaterial color={accent} roughness={0.7} />
+        <Html center>
+          <div className="flex flex-col items-center gap-1 text-white/80">
+            <ImageOff className="h-6 w-6" />
+            <span className="text-[10px] uppercase tracking-widest">sem foto</span>
+          </div>
+        </Html>
       </mesh>
+    );
+  }
+
+  if (!tex) return null;
+
+  return (
+    <group position={[0, 0, 0]}>
+      {/* Foto curvada */}
+      <mesh geometry={geo} position={[0, height / 2 - 0.1, 0]}>
+        <meshBasicMaterial
+          map={tex}
+          side={THREE.BackSide}
+          toneMapped={false}
+        />
+      </mesh>
+      {/* Moldura dourada superior */}
+      <mesh position={[0, height - 0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius * 0.995, 0.025, 12, 96, arc]} />
+        <meshStandardMaterial color="#d4af37" metalness={0.85} roughness={0.25} />
+      </mesh>
+      {/* Brilho lateral suave (parallax fake) */}
+      <pointLight
+        position={[-radius * 0.7, height * 0.5, radius * 0.3]}
+        color={accent}
+        intensity={0.6}
+        distance={6}
+      />
+      <pointLight
+        position={[radius * 0.7, height * 0.5, radius * 0.3]}
+        color="#fff5fa"
+        intensity={0.5}
+        distance={6}
+      />
+    </group>
+  );
+}
+
+// ============= FLOOR =============
+function Floor({ accent }: { accent: string }) {
+  return (
+    <>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+        <circleGeometry args={[4.2, 64]} />
+        <meshStandardMaterial color="#1a0a14" roughness={0.9} />
+      </mesh>
+      {/* halo no chão */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]}>
+        <ringGeometry args={[0.6, 2.6, 64]} />
+        <meshBasicMaterial
+          color={accent}
+          transparent
+          opacity={0.12}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </>
+  );
+}
+
+// ============= ACCESSORIES (3D toggleable) =============
+const ACCESSORY_EMOJI: Record<string, string> = {
+  default: "🎁",
+  bolo: "🎂",
+  cake: "🎂",
+  topo: "🎉",
+  topper: "👑",
+  balao: "🎈",
+  balões: "🎈",
+  flor: "🌸",
+  floral: "🌸",
+  rosa: "🌹",
+  vela: "🕯️",
+  candle: "🕯️",
+  doce: "🍭",
+  cupcake: "🧁",
+  mesa: "🪑",
+  cadeira: "🪑",
+  presente: "🎁",
+  letreiro: "💡",
+  led: "💡",
+  glitter: "✨",
+  brinde: "🥂",
+  tapete: "🟥",
+  arco: "🌈",
+  unicornio: "🦄",
+  leão: "🦁",
+  princesa: "👸",
+  coroa: "👑",
+};
+function emojiForExtra(name: string, fallbackEmoji?: string) {
+  if (fallbackEmoji) return fallbackEmoji;
+  const k = name.toLowerCase();
+  for (const key of Object.keys(ACCESSORY_EMOJI)) {
+    if (k.includes(key)) return ACCESSORY_EMOJI[key];
+  }
+  return ACCESSORY_EMOJI.default;
+}
+
+function AccessoryNode({
+  emoji,
+  angle,
+  accent,
+}: {
+  emoji: string;
+  angle: number;
+  accent: string;
+}) {
+  const radius = 2.4;
+  const x = Math.sin(angle) * radius;
+  const z = Math.cos(angle) * radius * 0.55 + 0.6;
+  const y = 0.55 + Math.sin(angle * 2) * 0.15;
+  return (
+    <Float speed={1.6} floatIntensity={0.5} rotationIntensity={0.2}>
+      <Html
+        position={[x, y, z]}
+        center
+        transform
+        distanceFactor={4}
+        sprite
+      >
+        <div
+          className="pointer-events-none select-none"
+          style={{
+            fontSize: 64,
+            filter: `drop-shadow(0 10px 22px ${accent}88)`,
+          }}
+        >
+          {emoji}
+        </div>
+      </Html>
     </Float>
   );
 }
 
-function StageScene({
-  accent,
-  theme,
-  showCake = true,
+// ============= SCENE =============
+function DioramaScene({
   photoSrc,
+  accent,
+  accessories,
 }: {
-  accent: string;
-  theme: Theme;
-  showCake?: boolean;
   photoSrc?: string;
+  accent: string;
+  accessories: { id: string; emoji: string }[];
 }) {
   return (
     <>
-      <ambientLight intensity={0.55} />
+      <ambientLight intensity={0.6} />
       <directionalLight
-        position={[3, 5, 4]}
-        intensity={1.1}
+        position={[2, 4, 3]}
+        intensity={0.9}
         castShadow
         shadow-mapSize={[1024, 1024]}
       />
-      <pointLight position={[-3, 2, 3]} color={accent} intensity={1.2} distance={10} />
-      <pointLight position={[3, 1, -2]} color="#ffffff" intensity={0.6} distance={8} />
+      <Floor accent={accent} />
+      <Suspense fallback={null}>
+        {photoSrc ? (
+          <CurvedPhoto src={photoSrc} accent={accent} />
+        ) : (
+          <mesh position={[0, 1.2, 0]}>
+            <planeGeometry args={[3.2, 2.2]} />
+            <meshStandardMaterial color={accent} roughness={0.5} />
+          </mesh>
+        )}
+      </Suspense>
 
-      <Floor />
-      <Backdrop accent={accent} theme={theme} />
-      {photoSrc && (
-        <Suspense fallback={null}>
-          <PhotoBillboard src={photoSrc} />
-        </Suspense>
-      )}
-      <BalloonArch accent={accent} />
-      {showCake && <Cake accent={accent} theme={theme} />}
-      <Props3D theme={theme} accent={accent} />
-      <Sparkles accent={accent} />
+      {accessories.map((a, i) => {
+        // distribui em semicírculo na frente da cena
+        const t = accessories.length === 1 ? 0 : i / (accessories.length - 1);
+        const angle = -Math.PI / 3 + t * (Math.PI / 1.5);
+        return (
+          <AccessoryNode
+            key={a.id}
+            emoji={a.emoji}
+            angle={angle}
+            accent={accent}
+          />
+        );
+      })}
 
       <ContactShadows
-        position={[0, -0.58, 0]}
-        opacity={0.45}
+        position={[0, -0.04, 0]}
+        opacity={0.55}
         scale={6}
-        blur={2.5}
+        blur={2.6}
         far={3}
         color="#1a0a14"
       />
@@ -372,85 +270,139 @@ function StageScene({
   );
 }
 
-// =========== COMPONENTE PÚBLICO ===========
-
+// ============= PUBLIC COMPONENT =============
 type Props = {
-  src?: string;
-  alt?: string;
-  accent?: string;
   kitName: string;
-  theme: string;
+  theme?: string;
+  accent?: string;
   photoSrc?: string;
   className?: string;
+  /** Acessórios do kit para o usuário ligar/desligar na cena */
+  extras?: Extra[];
+  /** IDs selecionados — controlado externamente (no detalhe) */
+  selectedExtraIds?: string[];
+  /** Toggle local (usado quando viewer é standalone, ex.: cards) */
+  allowExtraToggle?: boolean;
+  /** Modo compacto = sem UI de acessórios, autoRotate, dpr menor (para cards) */
+  compact?: boolean;
 };
 
 export function Product360({
   accent = "#e879a0",
-  kitName,
-  theme,
   photoSrc,
   className = "",
+  extras = [],
+  selectedExtraIds,
+  allowExtraToggle = true,
+  compact = false,
 }: Props) {
-  const t = themeFromKit(kitName, theme);
   const [interacted, setInteracted] = useState(false);
+  const [localSelected, setLocalSelected] = useState<string[]>([]);
+  const selected = selectedExtraIds ?? localSelected;
+
+  const visibleAccessories = useMemo(
+    () =>
+      extras
+        .filter((e) => selected.includes(e.id))
+        .map((e) => ({ id: e.id, emoji: emojiForExtra(e.name, e.emoji) })),
+    [extras, selected],
+  );
+
+  const toggle = (id: string) => {
+    if (selectedExtraIds && !allowExtraToggle) return;
+    setLocalSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
 
   return (
     <div className={`relative ${className}`}>
       <Canvas
         shadows
-        camera={{ position: [0, 1.0, 6.4], fov: 45 }}
-        dpr={[1, 2]}
+        camera={{ position: [0, 1.2, 4.6], fov: 42 }}
+        dpr={compact ? [1, 1.5] : [1, 2]}
         onPointerDown={() => setInteracted(true)}
         onWheel={() => setInteracted(true)}
-        style={{ background: `radial-gradient(circle at 50% 50%, ${accent}30, transparent 70%)` }}
+        style={{
+          background: `radial-gradient(circle at 50% 55%, ${accent}26, transparent 70%)`,
+        }}
+        gl={{ antialias: true, alpha: true }}
       >
         <Suspense fallback={null}>
-          <group position={[0, -0.2, 0]}>
-            <StageScene accent={accent} theme={t} photoSrc={photoSrc} />
-          </group>
+          <DioramaScene
+            photoSrc={photoSrc}
+            accent={accent}
+            accessories={visibleAccessories}
+          />
           <OrbitControls
             enablePan={false}
+            enableZoom={!compact}
             enableDamping
-            dampingFactor={0.08}
-            target={[0, 0.8, 0]}
-            minDistance={4.8}
-            maxDistance={9}
-            minPolarAngle={Math.PI / 2.4}
-            maxPolarAngle={Math.PI / 2.02}
-            autoRotate
-            autoRotateSpeed={interacted ? 0 : 0.8}
+            dampingFactor={0.1}
+            target={[0, 1.05, 0]}
+            minDistance={3.4}
+            maxDistance={6.5}
+            minPolarAngle={Math.PI / 2.6}
+            maxPolarAngle={Math.PI / 1.9}
+            minAzimuthAngle={-Math.PI / 2.2}
+            maxAzimuthAngle={Math.PI / 2.2}
+            autoRotate={!interacted || compact}
+            autoRotateSpeed={compact ? 1.4 : 0.6}
           />
         </Suspense>
       </Canvas>
 
-      {/* HUD */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-        <div className="inline-flex items-center gap-3 px-4 h-9 rounded-full bg-card/80 backdrop-blur border border-border text-[10px] uppercase tracking-widest font-bold">
-          <span className="inline-flex items-center gap-1.5">
-            <RotateCw className="h-3 w-3 text-primary" /> 360°
-          </span>
-          <span className="opacity-40">·</span>
-          <span className="inline-flex items-center gap-1.5">
-            <MousePointer2 className="h-3 w-3 text-primary" /> arraste
-          </span>
-          <span className="opacity-40">·</span>
-          <span className="inline-flex items-center gap-1.5">
-            <ZoomIn className="h-3 w-3 text-primary" /> zoom
-          </span>
+      {/* HUD com gestos */}
+      {!compact && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+          <div className="inline-flex items-center gap-3 px-4 h-9 rounded-full bg-card/80 backdrop-blur border border-border text-[10px] uppercase tracking-widest font-bold">
+            <span className="inline-flex items-center gap-1.5">
+              <Hand className="h-3 w-3 text-primary" /> arraste p/ girar
+            </span>
+            <span className="opacity-40">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <MoveVertical className="h-3 w-3 text-primary" /> incline
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {!interacted && (
+      {!compact && !interacted && (
         <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-primary/90 text-primary-foreground text-[10px] uppercase tracking-widest font-bold animate-pulse">
-          mergulhe na cena ✨
+          gire em 360° ✨
+        </div>
+      )}
+
+      {/* Toggle de acessórios */}
+      {!compact && extras.length > 0 && (
+        <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-1.5 max-h-24 overflow-auto">
+          {extras.map((e) => {
+            const on = selected.includes(e.id);
+            return (
+              <button
+                key={e.id}
+                onClick={() => toggle(e.id)}
+                className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[11px] font-semibold border transition backdrop-blur ${
+                  on
+                    ? "bg-primary text-primary-foreground border-primary shadow-petal"
+                    : "bg-card/80 text-foreground/80 border-border hover:border-primary/50"
+                }`}
+                title={on ? "Remover da cena" : "Adicionar à cena"}
+              >
+                <span className="text-sm leading-none">
+                  {emojiForExtra(e.name, e.emoji)}
+                </span>
+                <span className="hidden sm:inline">{e.name}</span>
+                {on ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-// Sub-cena exportada (caso queira reaproveitar)
-export { StageScene };
-// noop import to keep tree-shaken types
-void Center;
-void Text3D;
+// keep loaders tree-shake friendly
+void useLoader;
+void useFrame;

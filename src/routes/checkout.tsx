@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { OrderSummary } from "@/components/OrderSummary";
@@ -106,6 +107,9 @@ function CheckoutPage() {
       notes: builder.notes,
     });
     sessionStorage.removeItem("pl_checkout_draft");
+    toast.success("Pedido enviado!", {
+      description: "O WhatsApp abriu com seu resumo. Mande a mensagem para a decoradora confirmar.",
+    });
     navigate({ to: "/pedido/$id", params: { id: order.id } });
   };
 

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { CheckCircle2, Clock, MessageCircle, Sparkles } from "lucide-react";
+import { CheckCircle2, Clock, Eye, MessageCircle, Sparkles } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ordersService } from "@/services/orders.service";
@@ -108,14 +108,24 @@ function OrderPage() {
           )}
         </div>
 
-        <a
-          href={waHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-6 inline-flex items-center gap-2 w-full justify-center h-14 rounded-full bg-gradient-pink text-primary-foreground font-semibold shadow-petal"
-        >
-          <MessageCircle className="h-5 w-5" /> Reabrir conversa no WhatsApp
-        </a>
+        <div className="mt-6 grid sm:grid-cols-2 gap-3">
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 justify-center h-14 rounded-full bg-gradient-pink text-primary-foreground font-semibold shadow-petal"
+          >
+            <MessageCircle className="h-5 w-5" /> Reabrir WhatsApp
+          </a>
+          <Link
+            to="/kits/$kitId"
+            params={{ kitId: order.kitId }}
+            search={{ view: "local" as const }}
+            className="inline-flex items-center gap-2 justify-center h-14 rounded-full border border-border bg-card font-semibold hover:border-primary/50 transition"
+          >
+            <Eye className="h-5 w-5 text-primary" /> Ver no meu local
+          </Link>
+        </div>
 
         <div className="mt-4 text-center">
           <Link to="/" className="text-sm text-muted-foreground hover:text-primary">← Voltar ao catálogo</Link>
