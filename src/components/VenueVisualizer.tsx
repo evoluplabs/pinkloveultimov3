@@ -247,6 +247,9 @@ export function VenueVisualizer({
       if (file && navigator.share && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ text: msg, files: [file] });
+          toast.success("Prévia enviada", {
+            description: "Mensagem e imagem prontas para mandar pelo WhatsApp.",
+          });
           return;
         } catch {
           // fallback
@@ -265,6 +268,9 @@ export function VenueVisualizer({
         "_blank",
         "noopener,noreferrer",
       );
+      toast.success("WhatsApp aberto", {
+        description: "A imagem foi baixada — anexe na conversa junto com a mensagem.",
+      });
     } finally {
       setBusy(false);
     }
