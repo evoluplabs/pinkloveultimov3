@@ -1,10 +1,11 @@
 import { motion } from "motion/react";
-import { CalendarHeart, Sparkles, Truck } from "lucide-react";
+import { CalendarHeart, Camera, RotateCw, Truck } from "lucide-react";
 
 const STEPS = [
-  { icon: Sparkles, title: "Escolha o kit", desc: "Explore os temas e selecione o tier (Bronze, Prata ou Ouro)." },
-  { icon: CalendarHeart, title: "Agende a data", desc: "Verificamos a disponibilidade em tempo real para o seu evento." },
-  { icon: Truck, title: "Receba ou retire", desc: "Montamos no local ou enviamos a caixa pegue & monte com tutorial." },
+  { icon: RotateCw, title: "Mergulhe no cenário", desc: "Gire cada kit em 360° e veja a lista exata do que vai chegar — sem surpresa." },
+  { icon: Camera, title: "Veja no seu local", desc: "Suba a foto do salão e visualize o pacote montado no espaço antes de fechar." },
+  { icon: CalendarHeart, title: "Reserve a data", desc: "Disponibilidade conferida em tempo real. Você só fecha se o seu dia estiver livre." },
+  { icon: Truck, title: "Receba ou retire", desc: "Montamos no local ou enviamos a caixa pegue & monte com tutorial em vídeo." },
 ];
 
 export function HowItWorks() {
@@ -22,11 +23,14 @@ export function HowItWorks() {
             · Como funciona ·
           </span>
           <h2 className="mt-2 font-display text-4xl sm:text-5xl text-balance">
-            Três passos até a festa perfeita
+            Da inspiração ao salão montado
           </h2>
+          <p className="mt-3 text-muted-foreground">
+            Uma experiência de compra pensada pra você fechar com confiança — e sem sustos no dia.
+          </p>
         </motion.div>
 
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
+        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {STEPS.map((s, i) => (
             <motion.div
               key={s.title}
