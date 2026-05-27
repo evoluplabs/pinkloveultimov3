@@ -1,5 +1,6 @@
 // VenueVisualizer — upload da foto do local + composição com a foto do kit.
-// Funciona puramente client-side (Canvas API). Export PNG e envio p/ WhatsApp.
+// Funciona puramente client-side (Canvas API). Gestos mobile (drag + pinch).
+// Export PNG e envio p/ WhatsApp com resumo do pedido.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
@@ -13,20 +14,33 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { formatBRL } from "@/lib/money";
+import { formatDateBR } from "@/lib/date";
+
+export type VenueOrderSummary = {
+  tierLabel?: string;
+  eventDate?: string;
+  extras?: { name: string; qty: number; unitPrice: number }[];
+  freightLabel?: string;
+  freightPrice?: number;
+  total?: number;
+};
 
 type Props = {
   kitImage: string;
   kitName: string;
   whatsappNumber?: string;
+  businessName?: string;
   accent?: string;
+  orderSummary?: VenueOrderSummary;
 };
 
 type Overlay = {
-  x: number; // % from left of stage
-  y: number; // % from top of stage
-  scale: number; // 0.2 - 2
-  rotation: number; // deg
-  opacity: number; // 0 - 1
+  x: number; // % from left
+  y: number; // % from top
+  scale: number;
+  rotation: number;
+  opacity: number;
 };
 
 const DEFAULT_OVERLAY: Overlay = {
@@ -37,16 +51,29 @@ const DEFAULT_OVERLAY: Overlay = {
   opacity: 1,
 };
 
-export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#e879a0" }: Props) {
+type Pointer = { id: number; x: number; y: number };
+
+export function VenueVisualizer({
+  kitImage,
+  kitName,
+  whatsappNumber,
+  businessName = "a decoradora",
+  accent = "#e879a0",
+  orderSummary,
+}: Props) {
   const [venueUrl, setVenueUrl] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(DEFAULT_OVERLAY);
   const [busy, setBusy] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef<{ ox: number; oy: number; px: number; py: number } | null>(null);
+  const pointers = useRef<Map<number, Pointer>>(new Map());
+  const gestureStart = useRef<{
+    overlay: Overlay;
+    centerPct: { x: number; y: number };
+    distance?: number;
+  } | null>(null);
 
   const onFile = (file?: File | null) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return;
+    if (!file || !file.type.startsWith("image/")) return;
     const url = URL.createObjectURL(file);
     setVenueUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -61,48 +88,90 @@ export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#
     };
   }, [venueUrl]);
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    const rect = stage.getBoundingClientRect();
-    dragging.current = {
-      ox: overlay.x,
-      oy: overlay.y,
-      px: ((e.clientX - rect.left) / rect.width) * 100,
-      py: ((e.clientY - rect.top) / rect.height) * 100,
-    };
-  };
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragging.current || !stageRef.current) return;
-    const rect = stageRef.current.getBoundingClientRect();
-    const cx = ((e.clientX - rect.left) / rect.width) * 100;
-    const cy = ((e.clientY - rect.top) / rect.height) * 100;
-    setOverlay((o) => ({
-      ...o,
-      x: clamp(dragging.current!.ox + (cx - dragging.current!.px), 0, 100),
-      y: clamp(dragging.current!.oy + (cy - dragging.current!.py), 0, 100),
-    }));
-  };
-  const handlePointerUp = () => {
-    dragging.current = null;
-  };
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    setOverlay((o) => ({ ...o, scale: clamp(o.scale - e.deltaY * 0.001, 0.15, 2.2) }));
+  // ===== Gestos (drag + pinch) =====
+  const stageRect = () => stageRef.current?.getBoundingClientRect();
+  const pctFromClient = (cx: number, cy: number) => {
+    const r = stageRect();
+    if (!r) return { x: 50, y: 50 };
+    return { x: ((cx - r.left) / r.width) * 100, y: ((cy - r.top) / r.height) * 100 };
   };
 
+  const recomputeGestureStart = () => {
+    const pts = [...pointers.current.values()];
+    if (!pts.length) {
+      gestureStart.current = null;
+      return;
+    }
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+    const distance =
+      pts.length >= 2
+        ? Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)
+        : undefined;
+    gestureStart.current = {
+      overlay: { ...overlay },
+      centerPct: pctFromClient(cx, cy),
+      distance,
+    };
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    pointers.current.set(e.pointerId, { id: e.pointerId, x: e.clientX, y: e.clientY });
+    recomputeGestureStart();
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { id: e.pointerId, x: e.clientX, y: e.clientY });
+    const pts = [...pointers.current.values()];
+    const start = gestureStart.current;
+    if (!start) return;
+
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+    const cur = pctFromClient(cx, cy);
+
+    let nextScale = start.overlay.scale;
+    if (pts.length >= 2 && start.distance) {
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const ratio = dist / start.distance;
+      nextScale = clamp(start.overlay.scale * ratio, 0.15, 2.4);
+    }
+
+    setOverlay((o) => ({
+      ...o,
+      x: clamp(start.overlay.x + (cur.x - start.centerPct.x), 0, 100),
+      y: clamp(start.overlay.y + (cur.y - start.centerPct.y), 0, 100),
+      scale: nextScale,
+    }));
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    recomputeGestureStart();
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    setOverlay((o) => ({ ...o, scale: clamp(o.scale - e.deltaY * 0.001, 0.15, 2.4) }));
+  };
+
+  // ===== Export =====
   const exportComposite = useCallback(async (): Promise<Blob | null> => {
     if (!venueUrl) return null;
     const venue = await loadImage(venueUrl);
-    const kit = await loadImage(kitImage, true);
+    const kit = await loadImage(kitImage, true).catch(() => null);
+    if (!kit) return null;
     const canvas = document.createElement("canvas");
-    canvas.width = venue.naturalWidth;
-    canvas.height = venue.naturalHeight;
+    // Limita a 1600px para mobile não travar
+    const maxW = 1600;
+    const scaleDown = Math.min(1, maxW / venue.naturalWidth);
+    canvas.width = Math.round(venue.naturalWidth * scaleDown);
+    canvas.height = Math.round(venue.naturalHeight * scaleDown);
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(venue, 0, 0);
-    // overlay
+    ctx.drawImage(venue, 0, 0, canvas.width, canvas.height);
     const baseW = canvas.width * 0.55 * overlay.scale;
     const ratio = kit.naturalHeight / kit.naturalWidth || 1;
     const baseH = baseW * ratio;
@@ -112,18 +181,44 @@ export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#
     ctx.globalAlpha = overlay.opacity;
     ctx.translate(cx, cy);
     ctx.rotate((overlay.rotation * Math.PI) / 180);
-    // subtle shadow for realism
     ctx.shadowColor = "rgba(0,0,0,0.35)";
     ctx.shadowBlur = baseW * 0.08;
     ctx.shadowOffsetY = baseH * 0.04;
     ctx.drawImage(kit, -baseW / 2, -baseH / 2, baseW, baseH);
     ctx.restore();
-    // watermark
     ctx.fillStyle = "rgba(255,255,255,0.9)";
     ctx.font = `${Math.max(14, canvas.width * 0.014)}px Inter, sans-serif`;
     ctx.fillText("Pink Love · prévia ilustrativa", 24, canvas.height - 24);
-    return await new Promise((res) => canvas.toBlob((b) => res(b), "image/png", 0.95));
+    return await new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.88));
   }, [venueUrl, kitImage, overlay]);
+
+  // ===== Mensagem WhatsApp com resumo do pedido =====
+  const buildWhatsAppMessage = () => {
+    const lines: string[] = [];
+    lines.push(`Olá ${businessName}! Fiz uma prévia do *${kitName}* no meu local 💕`);
+    if (orderSummary) {
+      lines.push("");
+      if (orderSummary.tierLabel) lines.push(`🎀 Pacote: ${orderSummary.tierLabel}`);
+      if (orderSummary.eventDate)
+        lines.push(`📅 Data: ${formatDateBR(orderSummary.eventDate)}`);
+      if (orderSummary.extras?.length) {
+        lines.push("✨ Extras:");
+        orderSummary.extras.forEach((e) =>
+          lines.push(`• ${e.name} — ${e.qty} × ${formatBRL(e.unitPrice)}`),
+        );
+      }
+      if (orderSummary.freightLabel && orderSummary.freightPrice) {
+        lines.push(`🚚 ${orderSummary.freightLabel}: ${formatBRL(orderSummary.freightPrice)}`);
+      }
+      if (orderSummary.total) {
+        lines.push("");
+        lines.push(`💰 Total estimado: ${formatBRL(orderSummary.total)}`);
+      }
+    }
+    lines.push("");
+    lines.push("Mando junto a prévia visual. Pode confirmar disponibilidade?");
+    return lines.join("\n");
+  };
 
   const handleDownload = async () => {
     setBusy(true);
@@ -133,7 +228,7 @@ export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `previa-${slug(kitName)}.png`;
+      a.download = `previa-${slug(kitName)}.jpg`;
       a.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -146,30 +241,29 @@ export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#
     try {
       const blob = await exportComposite();
       const phone = (whatsappNumber || "").replace(/\D/g, "");
-      const msg = encodeURIComponent(
-        `Olá! Fiz uma prévia do *${kitName}* no meu local e adorei. Pode me confirmar disponibilidade?`,
-      );
-      if (blob && navigator.share && navigator.canShare?.({ files: [new File([blob], "previa.png", { type: "image/png" })] })) {
+      const msg = buildWhatsAppMessage();
+      const file = blob ? new File([blob], `previa-${slug(kitName)}.jpg`, { type: "image/jpeg" }) : null;
+      if (file && navigator.share && navigator.canShare?.({ files: [file] })) {
         try {
-          await navigator.share({
-            text: decodeURIComponent(msg),
-            files: [new File([blob], `previa-${slug(kitName)}.png`, { type: "image/png" })],
-          });
+          await navigator.share({ text: msg, files: [file] });
           return;
         } catch {
-          // fallback below
+          // fallback
         }
       }
-      // Fallback: baixa a imagem e abre wa.me
       if (blob) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `previa-${slug(kitName)}.png`;
+        a.download = `previa-${slug(kitName)}.jpg`;
         a.click();
         URL.revokeObjectURL(url);
       }
-      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank", "noopener,noreferrer");
+      window.open(
+        `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
     } finally {
       setBusy(false);
     }
@@ -196,7 +290,7 @@ export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#
           <div>
             <div className="font-display text-lg leading-none">Veja no seu local</div>
             <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mt-1">
-              prévia visual · arraste, gire, redimensione
+              arraste · pinça pra escalar
             </div>
           </div>
         </div>
@@ -250,28 +344,34 @@ export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#
             ref={stageRef}
             className="relative aspect-[4/3] bg-black overflow-hidden touch-none select-none"
             onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onPointerLeave={handlePointerUp}
           >
             <img
               src={venueUrl!}
               alt="seu local"
               className="absolute inset-0 h-full w-full object-cover"
               draggable={false}
+              loading="eager"
+              decoding="async"
             />
             <motion.img
               src={kitImage}
               alt={kitName}
               draggable={false}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-              className="absolute h-auto w-[55%] cursor-grab active:cursor-grabbing pointer-events-auto drop-shadow-[0_30px_30px_rgba(0,0,0,0.45)]"
+              loading="eager"
+              decoding="async"
+              crossOrigin="anonymous"
+              className="absolute h-auto w-[55%] cursor-grab active:cursor-grabbing drop-shadow-[0_30px_30px_rgba(0,0,0,0.45)] pointer-events-none"
               style={overlayStyle}
               initial={{ opacity: 0 }}
               animate={{ opacity: overlay.opacity }}
             />
             <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-black/55 text-white text-[10px] uppercase tracking-widest font-bold backdrop-blur">
-              <Maximize2 className="h-3 w-3" /> arraste · scroll p/ zoom
+              <Maximize2 className="h-3 w-3" /> arraste · pinça
             </div>
           </div>
 
@@ -279,7 +379,7 @@ export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#
             <Slider
               label="Tamanho"
               min={15}
-              max={220}
+              max={240}
               value={Math.round(overlay.scale * 100)}
               onChange={(v) => setOverlay((o) => ({ ...o, scale: v / 100 }))}
             />
@@ -320,13 +420,15 @@ export function VenueVisualizer({ kitImage, kitName, whatsappNumber, accent = "#
                   disabled={busy}
                   className="ml-auto inline-flex items-center gap-2 h-10 px-5 rounded-full bg-gradient-pink text-primary-foreground text-sm font-semibold shadow-petal hover:brightness-110 disabled:opacity-60"
                 >
-                  <MessageCircle className="h-4 w-4" /> Enviar prévia no WhatsApp
+                  <MessageCircle className="h-4 w-4" />
+                  {busy ? "Gerando…" : "Enviar prévia no WhatsApp"}
                 </button>
               )}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Esta prévia é ilustrativa: dimensões reais podem variar conforme o espaço
-              e o pacote contratado.
+              {orderSummary?.tierLabel
+                ? `A mensagem leva o pacote ${orderSummary.tierLabel}, data e extras já preenchidos.`
+                : "Esta prévia é ilustrativa: dimensões reais podem variar conforme o espaço."}
             </p>
           </div>
         </>
