@@ -88,10 +88,9 @@ function KitDetailPage() {
               <div className="relative aspect-square rounded-3xl overflow-hidden bg-secondary border border-border">
                 {view === "360" ? (
                   <Product360
-                    src={kit.coverImage}
-                    alt={kit.name}
+                    kitName={kit.name}
+                    theme={kit.theme}
                     accent={kit.accent}
-                    frames={kit.frames360}
                     className="absolute inset-0"
                   />
                 ) : (
