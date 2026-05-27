@@ -14,6 +14,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { formatBRL } from "@/lib/money";
 import { formatDateBR } from "@/lib/date";
 

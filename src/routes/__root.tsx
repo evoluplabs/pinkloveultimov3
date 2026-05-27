@@ -10,6 +10,7 @@ import {
 
 import appCss from "../styles.css?url";
 import { useTheme } from "@/hooks/useTheme";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -96,6 +97,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeBoundary>
         <Outlet />
+        <Toaster position="top-center" richColors />
       </ThemeBoundary>
     </QueryClientProvider>
   );
