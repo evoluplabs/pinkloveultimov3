@@ -18,6 +18,8 @@ import { useOrderBuilder } from "@/hooks/useOrderBuilder";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+type KitView = "foto" | "360" | "local";
+
 export const Route = createFileRoute("/kits/$kitId")({
   head: ({ params }) => ({
     meta: [
@@ -25,16 +27,21 @@ export const Route = createFileRoute("/kits/$kitId")({
       { name: "description", content: "Detalhes do kit: tiers, BOM, disponibilidade e extras." },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { view?: KitView } => {
+    const v = s.view;
+    return v === "foto" || v === "360" || v === "local" ? { view: v } : {};
+  },
   component: KitDetailPage,
 });
 
 function KitDetailPage() {
   const { kitId } = Route.useParams();
+  const { view: initialView } = Route.useSearch();
   const navigate = useNavigate();
   const { data: kit, isLoading } = useKit(kitId);
   const { data: config } = useCatalogConfig();
   const builder = useOrderBuilder(kit, config);
-  const [view, setView] = useState<"foto" | "360" | "local">("foto");
+  const [view, setView] = useState<KitView>(initialView ?? "foto");
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
