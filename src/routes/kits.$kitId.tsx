@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
 import { motion } from "motion/react";
 import { ArrowLeft, Camera, ImageIcon, RotateCw } from "lucide-react";
 import { Header } from "@/components/Header";
