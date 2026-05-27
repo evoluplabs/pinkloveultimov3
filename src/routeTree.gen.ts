@@ -36,9 +36,9 @@ const PedidoIdRoute = PedidoIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const KitsKitIdRoute = KitsKitIdRouteImport.update({
-  id: '/$kitId',
-  path: '/$kitId',
-  getParentRoute: () => KitsRoute,
+  id: '/kits/$kitId',
+  path: '/kits/$kitId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -74,6 +74,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CheckoutRoute: typeof CheckoutRoute
+  KitsKitIdRoute: typeof KitsKitIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   KitsIndexRoute: typeof KitsIndexRoute
 }
@@ -110,10 +111,10 @@ declare module '@tanstack/react-router' {
     }
     '/kits/$kitId': {
       id: '/kits/$kitId'
-      path: '/$kitId'
+      path: '/kits/$kitId'
       fullPath: '/kits/$kitId'
       preLoaderRoute: typeof KitsKitIdRouteImport
-      parentRoute: typeof KitsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -121,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CheckoutRoute: CheckoutRoute,
+  KitsKitIdRoute: KitsKitIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   KitsIndexRoute: KitsIndexRoute,
 }
