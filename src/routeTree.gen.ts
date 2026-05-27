@@ -9,17 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as KitsRouteImport } from './routes/kits'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as KitsIndexRouteImport } from './routes/kits.index'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 import { Route as KitsKitIdRouteImport } from './routes/kits.$kitId'
 
-const KitsRoute = KitsRouteImport.update({
-  id: '/kits',
-  path: '/kits',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
@@ -30,63 +25,62 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KitsIndexRoute = KitsIndexRouteImport.update({
+  id: '/kits/',
+  path: '/kits/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PedidoIdRoute = PedidoIdRouteImport.update({
   id: '/pedido/$id',
   path: '/pedido/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KitsKitIdRoute = KitsKitIdRouteImport.update({
-  id: '/$kitId',
-  path: '/$kitId',
-  getParentRoute: () => KitsRoute,
+  id: '/kits/$kitId',
+  path: '/kits/$kitId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
-  '/kits': typeof KitsRouteWithChildren
   '/kits/$kitId': typeof KitsKitIdRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/kits/': typeof KitsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
-  '/kits': typeof KitsRouteWithChildren
   '/kits/$kitId': typeof KitsKitIdRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/kits': typeof KitsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/checkout': typeof CheckoutRoute
-  '/kits': typeof KitsRouteWithChildren
   '/kits/$kitId': typeof KitsKitIdRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/kits/': typeof KitsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/checkout' | '/kits' | '/kits/$kitId' | '/pedido/$id'
+  fullPaths: '/' | '/checkout' | '/kits/$kitId' | '/pedido/$id' | '/kits/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/checkout' | '/kits' | '/kits/$kitId' | '/pedido/$id'
-  id: '__root__' | '/' | '/checkout' | '/kits' | '/kits/$kitId' | '/pedido/$id'
+  to: '/' | '/checkout' | '/kits/$kitId' | '/pedido/$id' | '/kits'
+  id: '__root__' | '/' | '/checkout' | '/kits/$kitId' | '/pedido/$id' | '/kits/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CheckoutRoute: typeof CheckoutRoute
-  KitsRoute: typeof KitsRouteWithChildren
+  KitsKitIdRoute: typeof KitsKitIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
+  KitsIndexRoute: typeof KitsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/kits': {
-      id: '/kits'
-      path: '/kits'
-      fullPath: '/kits'
-      preLoaderRoute: typeof KitsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/checkout': {
       id: '/checkout'
       path: '/checkout'
@@ -101,6 +95,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kits/': {
+      id: '/kits/'
+      path: '/kits'
+      fullPath: '/kits/'
+      preLoaderRoute: typeof KitsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedido/$id': {
       id: '/pedido/$id'
       path: '/pedido/$id'
@@ -110,29 +111,20 @@ declare module '@tanstack/react-router' {
     }
     '/kits/$kitId': {
       id: '/kits/$kitId'
-      path: '/$kitId'
+      path: '/kits/$kitId'
       fullPath: '/kits/$kitId'
       preLoaderRoute: typeof KitsKitIdRouteImport
-      parentRoute: typeof KitsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface KitsRouteChildren {
-  KitsKitIdRoute: typeof KitsKitIdRoute
-}
-
-const KitsRouteChildren: KitsRouteChildren = {
-  KitsKitIdRoute: KitsKitIdRoute,
-}
-
-const KitsRouteWithChildren = KitsRoute._addFileChildren(KitsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CheckoutRoute: CheckoutRoute,
-  KitsRoute: KitsRouteWithChildren,
+  KitsKitIdRoute: KitsKitIdRoute,
   PedidoIdRoute: PedidoIdRoute,
+  KitsIndexRoute: KitsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

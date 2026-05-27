@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { KitsGrid } from "@/components/KitsGrid";
 
-export const Route = createFileRoute("/kits")({
+export const Route = createFileRoute("/kits/")({
   head: () => ({
     meta: [
       { title: "Kits — Pink Love" },
@@ -22,8 +22,8 @@ function KitsPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h1 className="font-display text-5xl sm:text-6xl text-balance">Nosso catálogo</h1>
           <p className="mt-3 max-w-xl text-muted-foreground">
-            Filtre por tipo de serviço e clique em qualquer kit para ver os tiers,
-            o que vem dentro e a disponibilidade para o seu evento.
+            Filtre por tipo de serviço e clique em qualquer kit para mergulhar no 360°,
+            ver tiers, BOM e simular a montagem no seu salão.
           </p>
         </div>
       </div>
