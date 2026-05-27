@@ -398,23 +398,25 @@ export function Product360({
     <div className={`relative ${className}`}>
       <Canvas
         shadows
-        camera={{ position: [0, 1.15, 4.9], fov: 50 }}
+        camera={{ position: [0, 1.0, 6.4], fov: 45 }}
         dpr={[1, 2]}
         onPointerDown={() => setInteracted(true)}
         onWheel={() => setInteracted(true)}
-        style={{ background: `radial-gradient(circle at 50% 55%, ${accent}30, transparent 70%)` }}
+        style={{ background: `radial-gradient(circle at 50% 50%, ${accent}30, transparent 70%)` }}
       >
         <Suspense fallback={null}>
-          <StageScene accent={accent} theme={t} photoSrc={photoSrc} />
+          <group position={[0, -0.2, 0]}>
+            <StageScene accent={accent} theme={t} photoSrc={photoSrc} />
+          </group>
           <OrbitControls
             enablePan={false}
             enableDamping
             dampingFactor={0.08}
-            target={[0, 1.1, 0]}
-            minDistance={3.4}
-            maxDistance={7.5}
-            minPolarAngle={Math.PI / 3}
-            maxPolarAngle={Math.PI / 2.05}
+            target={[0, 0.8, 0]}
+            minDistance={4.8}
+            maxDistance={9}
+            minPolarAngle={Math.PI / 2.4}
+            maxPolarAngle={Math.PI / 2.02}
             autoRotate
             autoRotateSpeed={interacted ? 0 : 0.8}
           />
