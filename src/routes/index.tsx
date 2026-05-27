@@ -1,29 +1,43 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { Hero } from "@/components/Hero";
+import { TopSellers } from "@/components/TopSellers";
+import { KitsGrid } from "@/components/KitsGrid";
+import { HowItWorks } from "@/components/HowItWorks";
+import { useCatalogConfig } from "@/hooks/useCatalog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "Pink Love — Catálogo da sua decoradora" },
+      { name: "description", content: "Catálogo imersivo de kits de festa: Princesa, Safari, Unicórnio e mais. Disponibilidade em tempo real e checkout pelo WhatsApp." },
+      { property: "og:title", content: "Pink Love — Catálogo de festas" },
+      { property: "og:description", content: "Kits completos para festas inesquecíveis. Tiers Bronze, Prata e Ouro." },
     ],
   }),
-  component: Index,
+  component: Home,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Home() {
+  const { data: config, isLoading } = useCatalogConfig();
+
+  if (isLoading || !config) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background">
+        <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <Hero config={config} />
+      <TopSellers />
+      <KitsGrid />
+      <HowItWorks />
+      <Footer />
     </div>
   );
 }
