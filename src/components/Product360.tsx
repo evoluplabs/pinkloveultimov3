@@ -295,18 +295,30 @@ function Floor() {
 }
 
 function PhotoBillboard({ src }: { src: string }) {
-  // tenta carregar; se a URL falhar (CORS), o componente faz fallback silencioso
-  const tex = useLoader(THREE.TextureLoader, src, undefined, () => {});
+  const [tex, setTex] = useState<THREE.Texture | null>(null);
+  const [aspect, setAspect] = useState(1.33);
+  useMemo(() => {
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin("anonymous");
+    loader.load(
+      src,
+      (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        setTex(t);
+        if (t.image?.width) setAspect(t.image.width / t.image.height);
+      },
+      undefined,
+      () => setTex(null),
+    );
+  }, [src]);
   if (!tex) return null;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const aspect = (tex.image?.width ?? 4) / (tex.image?.height ?? 3);
   const h = 1.6;
   const w = h * aspect;
   return (
     <Float speed={1.2} floatIntensity={0.2} rotationIntensity={0.05}>
       <mesh position={[0, 0.95, -0.3]}>
         <planeGeometry args={[w, h]} />
-        <meshBasicMaterial map={tex} toneMapped={false} />
+        <meshBasicMaterial map={tex} toneMapped={false} transparent />
       </mesh>
     </Float>
   );
