@@ -35,8 +35,10 @@ import type {
   CatalogConfig,
   DataAdapter,
   Kit,
+  KitType,
   Order,
   OrderStatus,
+  Tier,
   TierLevel,
   Unsubscribe,
 } from "@/data/types";
@@ -107,19 +109,70 @@ function mapConfig(data: DocumentData): CatalogConfig {
   };
 }
 
+// ─── Normalização kit-genie → catálogo ───────────────────────
+// kit-genie usa "decoracao"/"pegue_monte"; catálogo usa "decoracao-montada"/"pegue-e-monte"
+function normalizeType(t: string): KitType {
+  if (t === "decoracao")   return "decoracao-montada";
+  if (t === "pegue_monte") return "pegue-e-monte";
+  return t as KitType;
+}
+
+const TIER_META: Record<string, { label: string; emoji: string }> = {
+  bronze: { label: "Bronze", emoji: "🥉" },
+  prata:  { label: "Prata",  emoji: "🥈" },
+  ouro:   { label: "Ouro",   emoji: "🥇" },
+};
+
+// Aceita tanto o formato do kit-genie ({ name, price, items, description })
+// quanto o formato nativo do catálogo ({ level, label, emoji, price, bom, available })
+function normalizeTiers(data: DocumentData): Tier[] {
+  const raw: unknown[] = data.tiers ?? [];
+
+  if (raw.length === 0) {
+    // Kit sem tiers → cria um tier único "Padrão" a partir do preço base
+    return [{
+      level: "bronze" satisfies TierLevel,
+      label: "Padrão",
+      emoji: "🎀",
+      price: data.price ?? 0,
+      description: data.description ?? "",
+      bom: [],
+      available: true,
+    }];
+  }
+
+  return raw.map((t: any): Tier => {
+    // Já está no formato do catálogo
+    if (t.level) return t as Tier;
+    // Formato kit-genie: { name, price, items, description }
+    const meta = TIER_META[t.name as string] ?? { label: String(t.name), emoji: "🎀" };
+    return {
+      level:       t.name       as TierLevel,
+      label:       meta.label,
+      emoji:       meta.emoji,
+      price:       t.price      ?? 0,
+      description: t.description ?? "",
+      bom:         [],   // KitItem (componentId+qty) ≠ BomComponent — não mapeável sem lookup
+      available:   true,
+    };
+  });
+}
+
 function mapKit(id: string, data: DocumentData): Kit {
   return {
     id,
     name:        data.name        ?? "",
     theme:       data.theme       ?? "",
-    type:        data.type        ?? "decoracao-montada",
+    type:        normalizeType(data.type ?? "decoracao-montada"),
     tagline:     data.tagline     ?? "",
     description: data.description ?? "",
-    coverImage:  data.coverImage  ?? "",
+    // kit-genie usa imageUrl; catálogo usa coverImage — aceita os dois
+    coverImage:  data.coverImage  ?? data.imageUrl ?? "",
     gallery:     data.gallery     ?? [],
     frames360:   data.frames360,
-    accent:      data.accent      ?? "#e879a0",
-    tiers:       data.tiers       ?? [],
+    // kit-genie usa imageColor; catálogo usa accent — aceita os dois
+    accent:      data.accent      ?? data.imageColor ?? "#e879a0",
+    tiers:       normalizeTiers(data),
     extras:      data.extras      ?? [],
     rating:      data.rating      ?? 0,
     badges:      data.badges,
