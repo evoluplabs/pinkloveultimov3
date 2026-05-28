@@ -1,9 +1,6 @@
-import { copyFileSync, cpSync, mkdirSync } from 'fs'
+import { copyFileSync } from 'fs'
 
-// 1. Copia o worker SSR para onde o Cloudflare Pages espera
-copyFileSync('dist/server/index.js', 'dist/_worker.js')
-console.log('✅ _worker.js copiado para dist/')
-
-// 2. Move os assets de dist/client/ para dist/ (path correto para CF Pages)
-cpSync('dist/client/', 'dist/', { recursive: true })
-console.log('✅ Assets movidos de dist/client/ para dist/')
+// Renomeia o worker para o nome esperado pelo Cloudflare Pages.
+// Nitro cloudflare-pages preset gera dist/index.js, mas CF Pages exige _worker.js.
+copyFileSync('dist/index.js', 'dist/_worker.js')
+console.log('✅ dist/index.js → dist/_worker.js')
