@@ -1,3 +1,6 @@
+# Credenciais — NUNCA commitar
+serviceAccountKey.json
+
 # Logs
 logs
 *.log

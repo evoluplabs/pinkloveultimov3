@@ -16,6 +16,7 @@ import { OrderSummary } from "@/components/OrderSummary";
 import { useKit, useCatalogConfig } from "@/hooks/useCatalog";
 import { useOrderBuilder } from "@/hooks/useOrderBuilder";
 import { cn } from "@/lib/utils";
+import { ClientOnly } from "@/components/ClientOnly";
 
 type KitView = "foto" | "360" | "local";
 
@@ -109,17 +110,19 @@ function KitDetailPage() {
             ) : (
               <div className="relative aspect-square rounded-3xl overflow-hidden bg-secondary border border-border">
                 {view === "360" ? (
-                  <Product360
-                    kitName={kit.name}
-                    theme={kit.theme}
-                    accent={kit.accent}
-                    photoSrc={kit.coverImage}
-                    extras={kit.extras}
-                    selectedExtraIds={kit.extras
-                      .filter((e) => (builder.extras[e.id] ?? 0) > 0)
-                      .map((e) => e.id)}
-                    className="absolute inset-0"
-                  />
+                  <ClientOnly fallback={<div className="absolute inset-0 bg-secondary animate-pulse-soft" />}>
+                    <Product360
+                      kitName={kit.name}
+                      theme={kit.theme}
+                      accent={kit.accent}
+                      photoSrc={kit.coverImage}
+                      extras={kit.extras}
+                      selectedExtraIds={kit.extras
+                        .filter((e) => (builder.extras[e.id] ?? 0) > 0)
+                        .map((e) => e.id)}
+                      className="absolute inset-0"
+                    />
+                  </ClientOnly>
                 ) : (
                   <motion.img
                     key={kit.coverImage}
