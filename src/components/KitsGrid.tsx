@@ -31,7 +31,7 @@ export function KitsGrid() {
               · Nossos kits ·
             </span>
             <h2 className="mt-2 font-display text-4xl sm:text-5xl text-balance">
-              Cenários completos, prontos para encantar
+              Cada kit, uma história diferente
             </h2>
           </div>
           <div className="flex flex-wrap gap-2 text-sm">

@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Eye, Hand, Sparkles } from "lucide-react";
 import { useTopKits } from "@/hooks/useCatalog";
 import { formatBRL } from "@/lib/money";
@@ -13,6 +13,7 @@ export function ImmersiveStage() {
   const [idx, setIdx] = useState(0);
   const [interacted, setInteracted] = useState(false);
   const reduceMotion = useReducedMotion();
+  const navigate = useNavigate();
 
   const drag = useRef<{ x: number; idx: number; id: number } | null>(null);
 
@@ -99,7 +100,11 @@ export function ImmersiveStage() {
                   key={k.id}
                   onClick={() => {
                     setInteracted(true);
-                    setIdx(i);
+                    if (i === idx) {
+                      navigate({ to: "/kits/$kitId", params: { kitId: k.id } });
+                    } else {
+                      setIdx(i);
+                    }
                   }}
                   aria-label={`${k.name} — ${k.theme}`}
                   className="absolute top-1/2 left-1/2 will-change-transform"
@@ -145,7 +150,7 @@ export function ImmersiveStage() {
                     </div>
                     {isActive && (
                       <div className="absolute top-3 right-3 px-2.5 h-7 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-bold uppercase tracking-widest inline-flex items-center gap-1">
-                        <Eye className="h-3 w-3" /> Tocar p/ abrir
+                        <Eye className="h-3 w-3" /> Toque para abrir
                       </div>
                     )}
                   </div>

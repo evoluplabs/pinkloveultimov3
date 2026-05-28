@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { motion } from "motion/react";
-import { ArrowLeft, Camera, ImageIcon, RotateCw, Upload, X } from "lucide-react";
+import { ArrowLeft, Camera, ImageIcon, RotateCw } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Product360 } from "@/components/Product360";
@@ -15,7 +15,6 @@ import { FreightSelector } from "@/components/FreightSelector";
 import { OrderSummary } from "@/components/OrderSummary";
 import { useKit, useCatalogConfig } from "@/hooks/useCatalog";
 import { useOrderBuilder } from "@/hooks/useOrderBuilder";
-import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 type KitView = "foto" | "360" | "local";
@@ -42,21 +41,6 @@ function KitDetailPage() {
   const { data: config } = useCatalogConfig();
   const builder = useOrderBuilder(kit, config);
   const [view, setView] = useState<KitView>(initialView ?? "foto");
-  const [customPhoto, setCustomPhoto] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  // libera object URL ao desmontar / trocar
-  useEffect(() => {
-    return () => {
-      if (customPhoto?.startsWith("blob:")) URL.revokeObjectURL(customPhoto);
-    };
-  }, [customPhoto]);
-
-  const onPickPhoto = (file?: File | null) => {
-    if (!file) return;
-    if (customPhoto?.startsWith("blob:")) URL.revokeObjectURL(customPhoto);
-    setCustomPhoto(URL.createObjectURL(file));
-  };
 
   if (isLoading) return <CenterLoader />;
   if (!kit || !config)
@@ -102,7 +86,7 @@ function KitDetailPage() {
           <div>
             {view === "local" ? (
               <VenueVisualizer
-                kitImage={customPhoto ?? kit.coverImage}
+                kitImage={kit.coverImage}
                 kitName={kit.name}
                 whatsappNumber={config.social.whatsapp}
                 businessName={config.businessName}
@@ -129,7 +113,7 @@ function KitDetailPage() {
                     kitName={kit.name}
                     theme={kit.theme}
                     accent={kit.accent}
-                    photoSrc={customPhoto ?? kit.coverImage}
+                    photoSrc={kit.coverImage}
                     extras={kit.extras}
                     selectedExtraIds={kit.extras
                       .filter((e) => (builder.extras[e.id] ?? 0) > 0)
@@ -138,10 +122,10 @@ function KitDetailPage() {
                   />
                 ) : (
                   <motion.img
-                    key={customPhoto ?? kit.coverImage}
+                    key={kit.coverImage}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    src={customPhoto ?? kit.coverImage}
+                    src={kit.coverImage}
                     alt={kit.name}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
@@ -149,7 +133,7 @@ function KitDetailPage() {
               </div>
             )}
 
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <div className="mt-3 flex justify-center">
               <div className="flex gap-1 rounded-full bg-card border border-border p-1">
                 <TabBtn active={view === "foto"} onClick={() => setView("foto")} icon={<ImageIcon className="h-3.5 w-3.5" />}>
                   Foto
@@ -161,40 +145,7 @@ function KitDetailPage() {
                   No seu local
                 </TabBtn>
               </div>
-
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => onPickPhoto(e.target.files?.[0])}
-              />
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-border bg-card hover:border-primary/50 text-xs font-semibold transition"
-                title="Use uma foto real do kit (modo de teste)"
-              >
-                <Upload className="h-3.5 w-3.5 text-primary" />
-                {customPhoto ? "Trocar foto" : "Testar foto real"}
-              </button>
-              {customPhoto && (
-                <button
-                  onClick={() => {
-                    if (customPhoto.startsWith("blob:")) URL.revokeObjectURL(customPhoto);
-                    setCustomPhoto(null);
-                  }}
-                  className="inline-flex items-center gap-1 h-9 px-2.5 rounded-full text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" /> remover
-                </button>
-              )}
             </div>
-
-            {customPhoto && (
-              <p className="mt-2 text-[11px] text-center text-muted-foreground">
-                Modo de teste: a foto está sendo usada como textura no palco 3D e na pré-visualização no local.
-              </p>
-            )}
 
 
             {view !== "local" && kit.gallery.length > 1 && (
@@ -222,7 +173,7 @@ function KitDetailPage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold mb-3">Escolha o pacote</h3>
+              <h3 className="text-sm font-semibold mb-3">Qual pacote combina mais com você?</h3>
               <TierSelector
                 tiers={kit.tiers}
                 value={builder.tier}
@@ -282,6 +233,11 @@ function KitDetailPage() {
             >
               Quero este kit →
             </button>
+            {!builder.eventDate && (
+              <p className="text-center text-xs text-muted-foreground -mt-2">
+                Informe a data do evento acima para continuar
+              </p>
+            )}
           </div>
         </div>
       </main>
@@ -291,7 +247,11 @@ function KitDetailPage() {
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Total</div>
           <div className="font-display text-xl text-primary leading-none truncate">
-            {builder.total > 0 ? `R$ ${builder.total.toFixed(2).replace(".", ",")}` : "Escolha o pacote"}
+            {builder.total > 0
+              ? builder.eventDate
+                ? `R$ ${builder.total.toFixed(2).replace(".", ",")}`
+                : "Informe a data"
+              : "Escolha o pacote"}
           </div>
         </div>
         <button
@@ -367,5 +327,3 @@ function TabBtn({
   );
 }
 
-// noop reference to suppress unused warning for useStore (kept for parity with MHOUSE imports if needed later)
-void useStore;

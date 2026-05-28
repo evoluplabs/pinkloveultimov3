@@ -22,8 +22,8 @@ function KitsPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h1 className="font-display text-5xl sm:text-6xl text-balance">Nosso catálogo</h1>
           <p className="mt-3 max-w-xl text-muted-foreground">
-            Filtre por tipo de serviço e clique em qualquer kit para mergulhar no 360°,
-            ver tiers, BOM e simular a montagem no seu salão.
+            Filtre por tipo de serviço e clique em qualquer kit para girar em 360°,
+            ver o que vem em cada pacote e visualizar como ficaria no seu salão.
           </p>
         </div>
       </div>
