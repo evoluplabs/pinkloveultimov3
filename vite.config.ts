@@ -5,8 +5,8 @@ export default defineConfig({
     preset: "cloudflare-pages",
     output: {
       dir: "dist",
-      serverDir: "dist",   // _worker.js vai para dist/ diretamente
-      publicDir: "dist",   // assets também em dist/
+      serverDir: "dist",
+      publicDir: "dist",
     },
   },
   tanstackStart: {
