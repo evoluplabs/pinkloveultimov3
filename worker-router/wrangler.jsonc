@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pinklove-router",
+  "main": "index.ts",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [
+    { "pattern": "*.pinklove.app/*", "zone_name": "pinklove.app" },
+    { "pattern": "pinklove.app/*",   "zone_name": "pinklove.app" }
+  ],
+  "vars": {
+    "PAGES_URL": "https://pinkloveultimov3.pages.dev"
+  }
+}
